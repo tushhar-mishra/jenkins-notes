@@ -1,0 +1,102 @@
+// Corrected version of the original Project 01 Jenkinsfile (original kept as "Jenkinsfile").
+// ⚠️ Fixes:
+//  - BuildKit instead of the deprecated legacy builder (removed `export DOCKER_BUILDKIT=0`)
+//  - idempotent namespace creation + `set -euo pipefail` (the #!/bin/bash -l shebang disables Jenkins' default -e)
+//  - credential ID kept as 'sonarqube-token' everywhere (the README snippets used 'sonarqube-token-new')
+//  - SonarQube referenced by DNS name instead of a private IP that changed between runs (set SONAR_HOST to yours)
+//  - timeouts, timestamps, build discarder; workspace cleanup in post
+pipeline {
+    agent { label 'docker-maven-trivy' }
+    options {
+        timeout(time: 45, unit: 'MINUTES')
+        timestamps()
+        buildDiscarder(logRotator(numToKeepStr: '20'))
+        disableConcurrentBuilds()
+    }
+    tools {
+        maven 'maven3'
+    }
+    environment {
+        SONAR_HOST   = 'http://sonarqube.internal:9000'      // was SONAR_IP = '172.31.37.48'; use your DNS name (or IP)
+        AWS_REGION   = 'ap-south-1'
+        EKS_CLUSTER  = 'cwvj-devsecops-eks'
+        ECR_REGISTRY = '386275436648.dkr.ecr.ap-south-1.amazonaws.com'
+        IMAGE_REPO   = "${ECR_REGISTRY}/cwvj-devsecops-demo"
+    }
+    stages {
+        stage('Trivy FS Scan') {
+            steps {
+                sh 'trivy fs --exit-code 1 --severity HIGH,CRITICAL .'
+            }
+        }
+        stage('Build & Sonar') {
+            steps {
+                withCredentials([string(credentialsId: 'sonarqube-token', variable: 'SONAR_TOKEN')]) {
+                    sh '''
+                      mvn -B clean verify sonar:sonar \
+                        -Dsonar.projectKey=cwvj-devsecops-demo \
+                        -Dsonar.host.url="$SONAR_HOST" \
+                        -Dsonar.token="$SONAR_TOKEN" \
+                        -Dsonar.qualitygate.wait=true
+                    '''
+                }
+            }
+            post {
+                always { junit allowEmptyResults: true, testResults: 'target/surefire-reports/*.xml' }
+            }
+        }
+        stage('ECR Login') {
+            steps {
+                sh 'aws ecr get-login-password --region "$AWS_REGION" | docker login --username AWS --password-stdin "$ECR_REGISTRY"'
+            }
+        }
+        stage('Build Image') {
+            steps {
+                // BuildKit (default since Docker Engine 23); the legacy builder is deprecated
+                sh 'docker build --platform linux/amd64 -t "$IMAGE_REPO:$BUILD_NUMBER" -t "$IMAGE_REPO:latest" .'
+            }
+        }
+        stage('Trivy Image Scan') {
+            steps {
+                sh 'trivy image --exit-code 1 --severity HIGH,CRITICAL "$IMAGE_REPO:$BUILD_NUMBER"'
+            }
+        }
+        stage('Push to ECR') {
+            steps {
+                sh 'docker push "$IMAGE_REPO:$BUILD_NUMBER"'
+                sh 'docker push "$IMAGE_REPO:latest"'
+            }
+        }
+        stage('Update Deployment') {
+            steps {
+                sh 'sed -i "s|image:.*|image: $IMAGE_REPO:$BUILD_NUMBER|g" deploy-svc.yaml'
+            }
+        }
+        stage('Deploy to Kubernetes') {
+            steps {
+                sh '''#!/bin/bash -l
+set -euo pipefail
+aws eks update-kubeconfig --region "$AWS_REGION" --name "$EKS_CLUSTER"
+
+# idempotent: works on the first and every later run
+kubectl create namespace cwvj-devsecops --dry-run=client -o yaml | kubectl apply -f -
+kubectl apply -f deploy-svc.yaml
+
+if ! kubectl rollout status -n cwvj-devsecops deployment/cwvj-devsecops-demo --timeout=120s; then
+  kubectl rollout undo -n cwvj-devsecops deployment/cwvj-devsecops-demo || true
+  exit 1
+fi
+'''
+            }
+        }
+    }
+    post {
+        success { echo "Build ${env.BUILD_NUMBER} succeeded" }
+        failure { echo "Build ${env.BUILD_NUMBER} failed" }
+        always  { echo "Build ${env.BUILD_NUMBER} finished" }
+        cleanup {
+            sh 'docker image rm "$IMAGE_REPO:$BUILD_NUMBER" "$IMAGE_REPO:latest" || true'
+            cleanWs()
+        }
+    }
+}

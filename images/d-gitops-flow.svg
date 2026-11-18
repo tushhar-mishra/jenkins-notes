@@ -1,0 +1,48 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 420" font-family="Segoe UI, Arial, sans-serif" font-size="13">
+  <rect width="960" height="420" fill="#ffffff"/>
+  <defs><marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#334155"/></marker></defs>
+  <text x="480" y="30" text-anchor="middle" font-size="18" font-weight="bold" fill="#0f172a">Jenkins does CI, Argo CD does CD (GitOps)</text>
+
+  <rect x="20" y="70" width="150" height="70" rx="8" fill="#e0f2fe" stroke="#0369a1"/>
+  <text x="95" y="98" text-anchor="middle" font-weight="bold" fill="#0c4a6e">App repo</text>
+  <text x="95" y="118" text-anchor="middle" fill="#0c4a6e">code + Jenkinsfile</text>
+
+  <rect x="220" y="60" width="260" height="140" rx="10" fill="#fef3c7" stroke="#b45309" stroke-width="2"/>
+  <text x="350" y="86" text-anchor="middle" font-weight="bold" font-size="15" fill="#78350f">JENKINS (CI)</text>
+  <text x="350" y="110" text-anchor="middle" fill="#78350f">test · scan · build · sign</text>
+  <text x="350" y="132" text-anchor="middle" fill="#78350f">push image@sha256:…</text>
+  <text x="350" y="154" text-anchor="middle" fill="#78350f">commit digest → env-config</text>
+  <text x="350" y="176" text-anchor="middle" fill="#b91c1c" font-size="12">no cluster credentials</text>
+  <line x1="170" y1="105" x2="218" y2="110" stroke="#334155" stroke-width="2" marker-end="url(#a)"/>
+
+  <rect x="220" y="250" width="260" height="70" rx="8" fill="#ede9fe" stroke="#6d28d9"/>
+  <text x="350" y="278" text-anchor="middle" font-weight="bold" fill="#4c1d95">Registry (ECR / GHCR)</text>
+  <text x="350" y="298" text-anchor="middle" fill="#4c1d95">immutable digests</text>
+  <line x1="350" y1="200" x2="350" y2="248" stroke="#334155" stroke-width="2" marker-end="url(#a)"/>
+
+  <rect x="540" y="60" width="200" height="200" rx="10" fill="#e0f2fe" stroke="#0369a1" stroke-width="2"/>
+  <text x="640" y="86" text-anchor="middle" font-weight="bold" fill="#0c4a6e">env-config repo</text>
+  <text x="640" y="114" text-anchor="middle" fill="#0c4a6e">envs/dev   ← Jenkins commits</text>
+  <text x="640" y="140" text-anchor="middle" fill="#0c4a6e">envs/stage ← PR + review</text>
+  <text x="640" y="166" text-anchor="middle" fill="#0c4a6e">envs/prod  ← PR + approval</text>
+  <text x="640" y="200" text-anchor="middle" fill="#0c4a6e">rollback = git revert</text>
+  <text x="640" y="222" text-anchor="middle" fill="#0c4a6e">audit = git log</text>
+  <line x1="480" y1="150" x2="538" y2="120" stroke="#334155" stroke-width="2" marker-end="url(#a)"/>
+
+  <rect x="790" y="60" width="150" height="320" rx="10" fill="#dcfce7" stroke="#15803d" stroke-width="2"/>
+  <text x="865" y="86" text-anchor="middle" font-weight="bold" fill="#14532d">CLUSTER</text>
+  <rect x="805" y="100" width="120" height="70" rx="6" fill="#ffffff" stroke="#15803d"/>
+  <text x="865" y="128" text-anchor="middle" fill="#14532d">Argo CD</text>
+  <text x="865" y="148" text-anchor="middle" fill="#14532d">pulls + syncs</text>
+  <rect x="805" y="190" width="120" height="50" rx="6" fill="#ffffff" stroke="#15803d"/>
+  <text x="865" y="220" text-anchor="middle" fill="#14532d">dev / stage / prod</text>
+  <text x="865" y="270" text-anchor="middle" fill="#14532d">self-heal:</text>
+  <text x="865" y="290" text-anchor="middle" fill="#14532d">kubectl edit</text>
+  <text x="865" y="310" text-anchor="middle" fill="#14532d">gets reverted</text>
+  <line x1="742" y1="130" x2="803" y2="132" stroke="#334155" stroke-width="2" marker-end="url(#a)"/>
+  <text x="772" y="122" text-anchor="middle" fill="#334155" font-size="11">pull</text>
+  <line x1="865" y1="170" x2="865" y2="188" stroke="#334155" stroke-width="2" marker-end="url(#a)"/>
+  <line x1="805" y1="230" x2="482" y2="290" stroke="#334155" stroke-width="2" marker-end="url(#a)"/>
+  <text x="650" y="282" text-anchor="middle" fill="#334155" font-size="11">nodes pull image by digest</text>
+  <text x="480" y="400" text-anchor="middle" fill="#475569">Topic 72</text>
+</svg>

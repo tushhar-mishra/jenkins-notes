@@ -1,0 +1,73 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 980 560" font-family="Segoe UI, Arial, sans-serif" font-size="13">
+  <rect width="980" height="560" fill="#ffffff"/>
+  <defs>
+    <marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#334155"/></marker>
+  </defs>
+  <text x="490" y="30" text-anchor="middle" font-size="18" font-weight="bold" fill="#0f172a">The life of a build: from git push to status check</text>
+
+  <!-- Developer + GitHub -->
+  <rect x="20" y="70" width="150" height="70" rx="8" fill="#e0f2fe" stroke="#0369a1"/>
+  <text x="95" y="98" text-anchor="middle" font-weight="bold" fill="#0c4a6e">Developer</text>
+  <text x="95" y="118" text-anchor="middle" fill="#0c4a6e">1 git push 9f3c2e7</text>
+
+  <rect x="20" y="200" width="150" height="90" rx="8" fill="#e0f2fe" stroke="#0369a1"/>
+  <text x="95" y="228" text-anchor="middle" font-weight="bold" fill="#0c4a6e">GitHub</text>
+  <text x="95" y="248" text-anchor="middle" fill="#0c4a6e">2 sends webhook</text>
+  <text x="95" y="266" text-anchor="middle" fill="#0c4a6e">(HTTP POST + JSON)</text>
+  <line x1="95" y1="140" x2="95" y2="198" stroke="#334155" stroke-width="2" marker-end="url(#a)"/>
+
+  <!-- Controller -->
+  <rect x="230" y="60" width="430" height="320" rx="10" fill="#fef3c7" stroke="#b45309" stroke-width="2"/>
+  <text x="445" y="84" text-anchor="middle" font-weight="bold" font-size="15" fill="#78350f">CONTROLLER (JVM)</text>
+  <rect x="250" y="100" width="180" height="56" rx="6" fill="#ffffff" stroke="#b45309"/>
+  <text x="340" y="123" text-anchor="middle" fill="#78350f">3 /github-webhook/</text>
+  <text x="340" y="141" text-anchor="middle" fill="#78350f">verify secret, find job</text>
+  <rect x="460" y="100" width="180" height="56" rx="6" fill="#ffffff" stroke="#b45309"/>
+  <text x="550" y="123" text-anchor="middle" fill="#78350f">4 branch indexing</text>
+  <text x="550" y="141" text-anchor="middle" fill="#78350f">job loans/feature-ui</text>
+  <rect x="250" y="180" width="180" height="56" rx="6" fill="#ffffff" stroke="#b45309"/>
+  <text x="340" y="203" text-anchor="middle" fill="#78350f">5 QUEUE  build #7</text>
+  <text x="340" y="221" text-anchor="middle" fill="#78350f">waiting → buildable</text>
+  <rect x="460" y="180" width="180" height="56" rx="6" fill="#ffffff" stroke="#b45309"/>
+  <text x="550" y="203" text-anchor="middle" fill="#78350f">6 Pipeline engine (CPS)</text>
+  <text x="550" y="221" text-anchor="middle" fill="#78350f">reads Jenkinsfile @9f3c2e7</text>
+  <rect x="250" y="260" width="390" height="56" rx="6" fill="#ffffff" stroke="#b45309"/>
+  <text x="445" y="283" text-anchor="middle" fill="#78350f">12 archive artifacts · junit · fingerprints → JENKINS_HOME/jobs/…/builds/7</text>
+  <text x="445" y="301" text-anchor="middle" fill="#78350f">13 result SUCCESS / UNSTABLE / FAILURE · post { }</text>
+  <rect x="250" y="330" width="390" height="38" rx="6" fill="#ffffff" stroke="#b45309"/>
+  <text x="445" y="354" text-anchor="middle" fill="#78350f">credentials store (encrypted) · plugins · build history</text>
+
+  <line x1="170" y1="245" x2="248" y2="128" stroke="#334155" stroke-width="2" marker-end="url(#a)"/>
+  <line x1="430" y1="128" x2="458" y2="128" stroke="#334155" stroke-width="2" marker-end="url(#a)"/>
+  <line x1="550" y1="156" x2="430" y2="200" stroke="#334155" stroke-width="2" marker-end="url(#a)"/>
+  <line x1="430" y1="208" x2="458" y2="208" stroke="#334155" stroke-width="2" marker-end="url(#a)"/>
+
+  <!-- Agent -->
+  <rect x="720" y="60" width="240" height="320" rx="10" fill="#dcfce7" stroke="#15803d" stroke-width="2"/>
+  <text x="840" y="84" text-anchor="middle" font-weight="bold" font-size="15" fill="#14532d">AGENT  label: docker</text>
+  <text x="840" y="108" text-anchor="middle" fill="#14532d">7 executor assigned</text>
+  <rect x="738" y="122" width="204" height="70" rx="6" fill="#ffffff" stroke="#15803d"/>
+  <text x="840" y="144" text-anchor="middle" fill="#14532d">8 workspace</text>
+  <text x="840" y="162" text-anchor="middle" fill="#14532d">/home/jenkins/workspace/</text>
+  <text x="840" y="180" text-anchor="middle" fill="#14532d">loans_feature-ui</text>
+  <text x="840" y="216" text-anchor="middle" fill="#14532d">9 git checkout -f 9f3c2e7</text>
+  <text x="840" y="240" text-anchor="middle" fill="#14532d">10 stages: sh build / test / scan</text>
+  <text x="840" y="264" text-anchor="middle" fill="#14532d">11 secrets injected, masked ****</text>
+  <text x="840" y="300" text-anchor="middle" fill="#14532d">logs stream back ←</text>
+  <line x1="640" y1="208" x2="718" y2="108" stroke="#334155" stroke-width="2" marker-end="url(#a)"/>
+  <text x="680" y="150" text-anchor="middle" fill="#334155" font-size="11">Remoting</text>
+  <line x1="720" y1="290" x2="642" y2="290" stroke="#334155" stroke-width="2" marker-end="url(#a)"/>
+
+  <!-- outputs -->
+  <rect x="230" y="420" width="250" height="70" rx="8" fill="#ede9fe" stroke="#6d28d9"/>
+  <text x="355" y="447" text-anchor="middle" font-weight="bold" fill="#4c1d95">14 Commit status → GitHub</text>
+  <text x="355" y="467" text-anchor="middle" fill="#4c1d95">✅/❌ gates the PR merge</text>
+  <rect x="510" y="420" width="250" height="70" rx="8" fill="#ede9fe" stroke="#6d28d9"/>
+  <text x="635" y="447" text-anchor="middle" font-weight="bold" fill="#4c1d95">15 Notifications</text>
+  <text x="635" y="467" text-anchor="middle" fill="#4c1d95">Slack / email from post { }</text>
+  <line x1="355" y1="380" x2="355" y2="418" stroke="#334155" stroke-width="2" marker-end="url(#a)"/>
+  <line x1="600" y1="380" x2="620" y2="418" stroke="#334155" stroke-width="2" marker-end="url(#a)"/>
+  <line x1="228" y1="455" x2="172" y2="290" stroke="#334155" stroke-width="2" marker-end="url(#a)"/>
+  <text x="790" y="520" text-anchor="middle" fill="#475569" font-size="12">16 executor released · workspace stays (or pod deleted)</text>
+  <text x="20" y="545" fill="#475569" font-size="11">Topic 11 · numbers match the step list in the text</text>
+</svg>

@@ -1,0 +1,14 @@
+# OS / editor cruft
+.DS_Store
+Thumbs.db
+desktop.ini
+*~
+.*.swp
+.vscode/
+.idea/
+
+# Never commit secrets (the notes only use placeholders)
+.env
+*.env
+*.pem
+*.key

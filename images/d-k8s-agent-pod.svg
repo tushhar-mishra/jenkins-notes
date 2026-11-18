@@ -1,0 +1,40 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 420" font-family="Segoe UI, Arial, sans-serif" font-size="13">
+  <rect width="900" height="420" fill="#ffffff"/>
+  <defs><marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#334155"/></marker></defs>
+  <text x="450" y="30" text-anchor="middle" font-size="18" font-weight="bold" fill="#0f172a">Kubernetes plugin: one pod per build</text>
+
+  <rect x="20" y="70" width="240" height="160" rx="10" fill="#fef3c7" stroke="#b45309" stroke-width="2"/>
+  <text x="140" y="96" text-anchor="middle" font-weight="bold" font-size="15" fill="#78350f">CONTROLLER</text>
+  <text x="140" y="122" text-anchor="middle" fill="#78350f">1 build needs label → none idle</text>
+  <text x="140" y="144" text-anchor="middle" fill="#78350f">2 create pod from template</text>
+  <text x="140" y="166" text-anchor="middle" fill="#78350f">(ServiceAccount + RBAC:</text>
+  <text x="140" y="186" text-anchor="middle" fill="#78350f">pods, pods/exec, pods/log)</text>
+  <text x="140" y="212" text-anchor="middle" fill="#78350f">7 delete pod after build</text>
+
+  <rect x="330" y="60" width="550" height="300" rx="12" fill="#eff6ff" stroke="#1d4ed8" stroke-width="2"/>
+  <text x="605" y="86" text-anchor="middle" font-weight="bold" font-size="15" fill="#1e3a8a">Agent pod (namespace jenkins-agents)</text>
+  <rect x="350" y="104" width="160" height="140" rx="8" fill="#ffffff" stroke="#1d4ed8"/>
+  <text x="430" y="128" text-anchor="middle" font-weight="bold" fill="#1e3a8a">jnlp</text>
+  <text x="430" y="150" text-anchor="middle" fill="#1e3a8a">jenkins/inbound-agent</text>
+  <text x="430" y="172" text-anchor="middle" fill="#1e3a8a">(added automatically)</text>
+  <text x="430" y="196" text-anchor="middle" fill="#1e3a8a">3 connects back</text>
+  <text x="430" y="216" text-anchor="middle" fill="#1e3a8a">(WebSocket)</text>
+  <rect x="530" y="104" width="160" height="140" rx="8" fill="#ffffff" stroke="#1d4ed8"/>
+  <text x="610" y="128" text-anchor="middle" font-weight="bold" fill="#1e3a8a">maven</text>
+  <text x="610" y="150" text-anchor="middle" fill="#1e3a8a">maven:3.9-temurin-21</text>
+  <text x="610" y="172" text-anchor="middle" fill="#1e3a8a">sleep infinity</text>
+  <text x="610" y="196" text-anchor="middle" fill="#1e3a8a">4 container('maven')</text>
+  <text x="610" y="216" text-anchor="middle" fill="#1e3a8a">{ sh 'mvn package' }</text>
+  <rect x="710" y="104" width="150" height="140" rx="8" fill="#ffffff" stroke="#1d4ed8"/>
+  <text x="785" y="128" text-anchor="middle" font-weight="bold" fill="#1e3a8a">kubectl / buildkit</text>
+  <text x="785" y="150" text-anchor="middle" fill="#1e3a8a">more tool</text>
+  <text x="785" y="172" text-anchor="middle" fill="#1e3a8a">containers</text>
+  <text x="785" y="196" text-anchor="middle" fill="#1e3a8a">5 container('kubectl')</text>
+  <rect x="350" y="268" width="510" height="70" rx="8" fill="#dbeafe" stroke="#1d4ed8"/>
+  <text x="605" y="294" text-anchor="middle" font-weight="bold" fill="#1e3a8a">6 shared workspace volume: /home/jenkins/agent</text>
+  <text x="605" y="316" text-anchor="middle" fill="#1e3a8a">all containers see the same checkout and build output</text>
+
+  <line x1="260" y1="140" x2="348" y2="150" stroke="#334155" stroke-width="2" marker-end="url(#a)"/>
+  <line x1="350" y1="200" x2="262" y2="180" stroke="#334155" stroke-width="2" marker-end="url(#a)"/>
+  <text x="450" y="395" text-anchor="middle" fill="#475569">Fresh pod every build: clean, isolated, scales to zero. Downside: cold caches. Topic 53.</text>
+</svg>

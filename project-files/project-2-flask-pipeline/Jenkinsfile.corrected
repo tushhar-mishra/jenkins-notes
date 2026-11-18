@@ -1,0 +1,63 @@
+// Corrected version of the original Day 06 Jenkinsfile (the original is kept next to this file as "Jenkinsfile").
+// Use with "Pipeline script from SCM" so Jenkins checks out the repo and sets GIT_COMMIT / GIT_BRANCH.
+pipeline {
+    agent any
+    options {
+        timestamps()
+        buildDiscarder(logRotator(numToKeepStr: '20'))
+    }
+    environment {
+        IMAGE = "docker.io/cloudwithvarjosh/cwvj-flask"   // change to YOUR Docker Hub namespace/repo
+        TAG   = "${BUILD_NUMBER}"
+    }
+    stages {
+        stage('build') {
+            steps {
+                sh 'docker build -t "$IMAGE:$TAG" -t "$IMAGE:latest" .'
+            }
+        }
+        stage('push') {
+            steps {
+                withCredentials([usernamePassword(credentialsId: 'dockerhub', passwordVariable: 'DOCKERHUB_PWD', usernameVariable: 'DOCKERHUB_USER')]) {
+                    sh 'echo "$DOCKERHUB_PWD" | docker login -u "$DOCKERHUB_USER" --password-stdin'
+                    sh 'docker push "$IMAGE:$TAG"'
+                    sh 'docker push "$IMAGE:latest"'
+                }
+            }
+        }
+        stage('deploy') {
+            steps {
+                sh 'docker pull "$IMAGE:$TAG"'
+                sh 'docker rm -f cwvj-flask || true'
+                sh 'docker run -d --name cwvj-flask -p 5000:5000 "$IMAGE:$TAG"'
+
+                // write deploy info with build number in the filename
+                sh '''
+                  cat > deploy-info-$BUILD_NUMBER.txt <<EOF
+build: $BUILD_NUMBER
+image: $IMAGE:$TAG
+commit: ${GIT_COMMIT}
+branch: $GIT_BRANCH
+time: $(date -u +"%Y-%m-%dT%H:%M:%SZ")
+url: $BUILD_URL
+EOF
+                '''
+                archiveArtifacts artifacts: "deploy-info-${BUILD_NUMBER}.txt", fingerprint: true, followSymlinks: false
+            }
+        }
+        stage('test') {
+            steps {
+                // ⚠️ Corrected: was `curl -s http://localhost:5000 || true`, which ran inside the Jenkins container
+                // (wrong localhost) and could never fail. Now curl runs in the app container's network and fails on errors.
+                sh 'docker run --rm --network container:cwvj-flask curlimages/curl -fsS --retry 5 --retry-connrefused http://localhost:5000'
+            }
+        }
+    }
+    post {
+        success { echo "Build ${env.BUILD_NUMBER} succeeded" }
+        failure { echo "Build ${env.BUILD_NUMBER} failed" }
+        always  { echo "Build ${env.BUILD_NUMBER} finished" }
+        // ⚠️ Corrected: was a 'cleanup' stage, which is skipped when an earlier stage fails. post/cleanup always runs, last.
+        cleanup { cleanWs() }
+    }
+}

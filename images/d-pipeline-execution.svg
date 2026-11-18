@@ -1,0 +1,38 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 440" font-family="Segoe UI, Arial, sans-serif" font-size="13">
+  <rect width="900" height="440" fill="#ffffff"/>
+  <defs><marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#334155"/></marker></defs>
+  <text x="450" y="30" text-anchor="middle" font-size="18" font-weight="bold" fill="#0f172a">Where pipeline code runs: Groovy on the controller, sh on the agent</text>
+
+  <rect x="20" y="60" width="400" height="340" rx="10" fill="#fef3c7" stroke="#b45309" stroke-width="2"/>
+  <text x="220" y="86" text-anchor="middle" font-weight="bold" font-size="15" fill="#78350f">CONTROLLER</text>
+  <rect x="40" y="100" width="360" height="110" rx="6" fill="#ffffff" stroke="#b45309"/>
+  <text x="220" y="122" text-anchor="middle" font-weight="bold" fill="#78350f">Flyweight executor: CPS Groovy program</text>
+  <text x="60" y="146" fill="#78350f">pipeline { stages { stage('Build') {</text>
+  <text x="80" y="166" fill="#78350f">steps { sh 'make' }  ← each step = a request</text>
+  <text x="60" y="186" fill="#78350f">}}}   if/for/def run HERE (controller CPU)</text>
+  <rect x="40" y="226" width="360" height="70" rx="6" fill="#ffffff" stroke="#b45309"/>
+  <text x="220" y="250" text-anchor="middle" fill="#78350f">State saved after every step</text>
+  <text x="220" y="270" text-anchor="middle" fill="#78350f">builds/N/program.dat → survives restarts</text>
+  <rect x="40" y="310" width="360" height="70" rx="6" fill="#ffffff" stroke="#b45309"/>
+  <text x="220" y="334" text-anchor="middle" fill="#78350f">Build log builds/N/log</text>
+  <text x="220" y="354" text-anchor="middle" fill="#78350f">(output polled from the agent)</text>
+
+  <rect x="500" y="60" width="380" height="340" rx="10" fill="#dcfce7" stroke="#15803d" stroke-width="2"/>
+  <text x="690" y="86" text-anchor="middle" font-weight="bold" font-size="15" fill="#14532d">AGENT (heavyweight executor)</text>
+  <rect x="520" y="100" width="340" height="70" rx="6" fill="#ffffff" stroke="#15803d"/>
+  <text x="690" y="124" text-anchor="middle" fill="#14532d">workspace/job/   ← checkout, build files</text>
+  <text x="690" y="144" text-anchor="middle" fill="#14532d">workspace/job@tmp/durable-xxxx/</text>
+  <rect x="520" y="186" width="340" height="110" rx="6" fill="#ffffff" stroke="#15803d"/>
+  <text x="690" y="208" text-anchor="middle" font-weight="bold" fill="#14532d">Durable task (detached process)</text>
+  <text x="540" y="230" fill="#14532d">script.sh  ← your sh step</text>
+  <text x="540" y="250" fill="#14532d">jenkins-log.txt  ← stdout/stderr</text>
+  <text x="540" y="270" fill="#14532d">jenkins-result.txt  ← exit code</text>
+  <text x="690" y="326" text-anchor="middle" fill="#14532d">keeps running if the controller restarts</text>
+  <text x="690" y="350" text-anchor="middle" fill="#14532d">runs as the agent OS user (e.g. jenkins)</text>
+
+  <line x1="400" y1="166" x2="518" y2="230" stroke="#334155" stroke-width="2" marker-end="url(#a)"/>
+  <text x="458" y="186" text-anchor="middle" fill="#334155" font-size="11">launch sh</text>
+  <line x1="518" y1="252" x2="402" y2="340" stroke="#334155" stroke-width="2" marker-end="url(#a)"/>
+  <text x="462" y="318" text-anchor="middle" fill="#334155" font-size="11">log + exit code</text>
+  <text x="20" y="428" fill="#475569" font-size="11">Topic 32</text>
+</svg>
