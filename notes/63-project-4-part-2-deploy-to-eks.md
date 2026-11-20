@@ -74,7 +74,7 @@ spec:
               app: cwvj-devsecops-demo
       containers:
         - name: cwvj-devsecops-demo
-          image: 386275436648.dkr.ecr.ap-south-1.amazonaws.com/cwvj-devsecops-demo:latest
+          image: <YOUR_ACCOUNT_ID>.dkr.ecr.ap-south-1.amazonaws.com/cwvj-devsecops-demo:latest
           ports:
             - containerPort: 8080
 ```
@@ -168,9 +168,9 @@ kubectl rollout status -n cwvj-devsecops deployment/cwvj-devsecops-demo --timeou
 ```
 **What this stage does (high level):**
 - Ensures the agent can talk to the EKS cluster through an updated kubeconfig.
-- Creates the demo namespace and applies the Deployment + Service.
+- Applies the Deployment + Service into the demo namespace (created once by a cluster admin; the pipeline can't create namespaces).
 - Waits for the rollout; on failure it **undoes** the rollout and fails the stage.
-- Enforces least privilege: the agent gets only the RBAC verbs it needs (deployments, replicasets, pods, services, namespaces).
+- Enforces least privilege: the agent gets only the RBAC verbs it needs, in **one namespace** (deployments, read-only replicasets/pods/events, services).
 
 **Pre-steps (the sequence):**
 1. **Create the EKS cluster** with `eksctl` and the config file.
@@ -287,7 +287,7 @@ Attach an inline policy to `jenkins-agent-role` permitting `eks:DescribeCluster`
       "Action": [
         "eks:DescribeCluster"
       ],
-      "Resource": "arn:aws:eks:ap-south-1:386275436648:cluster/cwvj-devsecops-eks"
+      "Resource": "arn:aws:eks:ap-south-1:<YOUR_ACCOUNT_ID>:cluster/cwvj-devsecops-eks"
     }
   ]
 }
@@ -299,7 +299,7 @@ Apply it in the IAM console: **Roles → jenkins-agent-role → Add permissions 
 ```bash
 aws eks create-access-entry \
   --cluster-name cwvj-devsecops-eks --region ap-south-1 \
-  --principal-arn arn:aws:iam::386275436648:role/jenkins-agent-role \
+  --principal-arn arn:aws:iam::<YOUR_ACCOUNT_ID>:role/jenkins-agent-role \
   --username jenkins-agent-role
 aws eks list-access-entries --cluster-name cwvj-devsecops-eks --region ap-south-1
 ```
@@ -318,7 +318,7 @@ The existing ConfigMap created by eksctl:
 apiVersion: v1
 data:
   mapRoles: |
-    - rolearn: arn:aws:iam::386275436648:role/eksctl-cwvj-devsecops-eks-nodegrou-NodeInstanceRole-J3Szf4uMWv1R
+    - rolearn: arn:aws:iam::<YOUR_ACCOUNT_ID>:role/eksctl-cwvj-devsecops-eks-nodegrou-NodeInstanceRole-J3Szf4uMWv1R
       groups:
       - system:bootstrappers
       - system:nodes
@@ -333,7 +333,7 @@ That entry is the **node instance role** (`system:bootstrappers`, `system:nodes`
 **Add the Jenkins IAM role** (file `project_files/aws-auth-edit`) to `mapRoles`:
 ```yaml
 mapRoles: |
-  - rolearn: arn:aws:iam::386275436648:role/jenkins-agent-role
+  - rolearn: arn:aws:iam::<YOUR_ACCOUNT_ID>:role/jenkins-agent-role
     username: jenkins-agent-role
     groups:
       - system:authenticated
@@ -350,52 +350,48 @@ You should see **two entries**: the NodeInstanceRole (bootstrappers + nodes) and
 
 ### 5) Grant precise RBAC (least privilege)
 
-A ClusterRole and ClusterRoleBinding so the mapped username `jenkins-agent-role` can manage deployments, replicasets, services, pods and namespaces, **nothing more** (`project_files/clusterrole-binding.yaml`):
+A namespaced **Role** and **RoleBinding** so the mapped username `jenkins-agent-role` can deploy the app in `cwvj-devsecops`, **nothing more** (`project_files/clusterrole-binding.yaml`; the file name is kept from the course). A cluster admin creates the namespace once: `kubectl create namespace cwvj-devsecops`.
+
+> ⚠️ **Corrected:** the course used a cluster-wide **ClusterRole + ClusterRoleBinding** that also allowed **creating and deleting any namespace** and deleting pods and services **in every namespace**, while calling it "nothing more". A compromised pipeline with that role could delete production namespaces. Least privilege means the narrowest scope (one namespace) and the fewest verbs.
+
 ```yaml
 apiVersion: rbac.authorization.k8s.io/v1
-kind: ClusterRole
+kind: Role
 metadata:
-  name: jenkins-deployer-role
+  name: jenkins-deployer
+  namespace: cwvj-devsecops
 rules:
-
-  # Deployments + ReplicaSets
   - apiGroups: ["apps"]
-    resources: ["deployments", "replicasets"]
-    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
-
-  # Pods
-  - apiGroups: [""]
-    resources: ["pods"]
-    verbs: ["get", "list", "watch", "delete"]
-
-  # Services
+    resources: ["deployments"]
+    verbs: ["get", "list", "watch", "create", "update", "patch"]
+  - apiGroups: ["apps"]
+    resources: ["replicasets"]               # read by rollout status / undo
+    verbs: ["get", "list", "watch"]
   - apiGroups: [""]
     resources: ["services"]
-    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
-
-  # Namespaces (allow create + management)
+    verbs: ["get", "list", "watch", "create", "update", "patch"]
   - apiGroups: [""]
-    resources: ["namespaces"]
-    verbs: ["get", "list", "watch", "create", "delete", "patch", "update"]
-
+    resources: ["pods", "pods/log", "events"] # read-only, to debug a failed rollout
+    verbs: ["get", "list", "watch"]
 ---
-
 apiVersion: rbac.authorization.k8s.io/v1
-kind: ClusterRoleBinding
+kind: RoleBinding
 metadata:
-  name: jenkins-deployer-binding
+  name: jenkins-deployer
+  namespace: cwvj-devsecops
 subjects:
   - kind: User
     name: jenkins-agent-role     # must match the username in the access entry / aws-auth
     apiGroup: rbac.authorization.k8s.io
 roleRef:
-  kind: ClusterRole
-  name: jenkins-deployer-role
+  kind: Role
+  name: jenkins-deployer
   apiGroup: rbac.authorization.k8s.io
 ```
-- `apiGroups: ["apps"]` = Deployments/ReplicaSets live in the `apps` API group; `""` = the core group (pods, services, namespaces).
+- `apiGroups: ["apps"]` = Deployments/ReplicaSets live in the `apps` API group; `""` = the core group (pods, services).
 - `verbs` = allowed actions. `watch` is needed by `kubectl rollout status`; `rollout undo` needs `get`/`patch` on deployments and `list` on replicasets.
-- A **ClusterRole** + **ClusterRoleBinding** grants these **in every namespace**. Tighter: a namespace-scoped **Role/RoleBinding** in `cwvj-devsecops` (with the namespace created by an admin), so a compromised pipeline can't touch other namespaces. Deleting namespaces is a powerful verb too; drop it if not needed.
+- No `delete` anywhere and no namespace access: a compromised pipeline can at worst break this one app, and the rollout history still lets a human undo it.
+- Check it: `kubectl auth can-i delete namespace --as jenkins-agent-role` → `no`; `kubectl auth can-i patch deployment -n cwvj-devsecops --as jenkins-agent-role` → `yes`.
 
 Apply (from the admin machine):
 ```bash
@@ -507,7 +503,7 @@ pipeline {
     }
     environment {
         SONAR_IP = '172.31.37.48'
-        ECR_REGISTRY = '386275436648.dkr.ecr.ap-south-1.amazonaws.com'
+        ECR_REGISTRY = '<YOUR_ACCOUNT_ID>.dkr.ecr.ap-south-1.amazonaws.com'
         IMAGE_REPO = "${ECR_REGISTRY}/cwvj-devsecops-demo"
     }
     stages {
@@ -522,7 +518,6 @@ pipeline {
               sh 'mvn clean verify sonar:sonar \
   -Dsonar.projectKey=cwvj-devsecops-demo \
   -Dsonar.host.url="http://${SONAR_IP}:9000" \
-  -Dsonar.token="${SONAR_TOKEN}" \
   -Dsonar.qualitygate.wait=true'
 }
             }

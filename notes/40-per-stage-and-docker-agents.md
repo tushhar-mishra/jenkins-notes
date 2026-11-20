@@ -56,9 +56,9 @@ pipeline {
   agent none
   stages {
     stage('Build jar') {
-      agent { docker { image 'maven:3.9-eclipse-temurin-21'; args '-v maven-cache:/root/.m2' } }
+      agent { docker { image 'maven:3.9-eclipse-temurin-21'; args '-v maven-cache:/cache/m2' } }
       steps {
-        sh 'mvn -B -q clean package -DskipTests'
+        sh 'mvn -B -q -Dmaven.repo.local=/cache/m2 clean package -DskipTests'
         stash name: 'jar', includes: 'target/*.jar'
       }
     }
@@ -77,7 +77,8 @@ pipeline {
   }
 }
 ```
-- `args '-v maven-cache:/root/.m2'` = extra `docker run` flags: here a named volume to cache Maven downloads between builds.
+- `args '-v maven-cache:/cache/m2'` = extra `docker run` flags: here a named volume to cache Maven downloads between builds, used through `-Dmaven.repo.local=/cache/m2`.
+- ⚠️ *Corrected:* the original mounted the cache at `/root/.m2`. But Jenkins runs the container as the **agent's UID** (`-u 1000:1000`, see above), not root, so that user can't write to `/root` and Maven ignored or failed on the cache. Named volumes are created **owned by root**, so give the agent's UID the volume once: `docker run --rm -v maven-cache:/cache alpine sh -c 'mkdir -p /cache/m2 && chown -R 1000:1000 /cache'`.
 - `stash name: 'jar', includes: 'target/*.jar'` then `unstash 'jar'` on a different node.
 
 Console (shape):

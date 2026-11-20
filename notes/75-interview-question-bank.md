@@ -95,7 +95,7 @@
 
 60. **Walk me through your DevSecOps pipeline.** Trivy FS → Maven verify + SonarQube gate → ECR login via IAM role → build (amd64) → Trivy image → push to an immutable ECR repo → update the manifest → deploy to EKS with least-privilege access → rollout status with automatic undo → post notifications. (62, 63)
 61. **Why both SonarQube and Trivy?** Different risks: own code vs third-party/base image CVEs. (59)
-62. **How did Jenkins get EKS access with least privilege?** IAM role with only DescribeCluster, an access entry (or legacy aws-auth) mapping it to a username in `system:authenticated`, and a minimal ClusterRole. Never `system:masters`. (61, 63)
+62. **How did Jenkins get EKS access with least privilege?** IAM role with only DescribeCluster, an access entry (or legacy aws-auth) mapping it to a username in `system:authenticated`, and a **namespaced Role/RoleBinding** with only deploy verbs in the app's namespace: no `delete`, no namespace access, no ClusterRole. Never `system:masters`. Prove it with `kubectl auth can-i … --as <user>`. (61, 63)
 63. **How does the pipeline roll back a failed rollout?** `rollout status --timeout` → `rollout undo` → `exit 1`. (63)
 64. **How would you improve the pipeline?** Ingress/Gateway, multibranch, GitOps, DNS, digests, signing + admission, a secrets manager, observability, policy-as-code, Helm/Kustomize, canary, cleanup. (64)
 

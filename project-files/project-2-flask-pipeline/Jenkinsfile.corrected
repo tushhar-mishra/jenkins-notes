@@ -5,9 +5,12 @@ pipeline {
     options {
         timestamps()
         buildDiscarder(logRotator(numToKeepStr: '20'))
+        // Audit fix: two builds used to race for the same container name and host port 5000.
+        disableConcurrentBuilds()
+        timeout(time: 20, unit: 'MINUTES')
     }
     environment {
-        IMAGE = "docker.io/cloudwithvarjosh/cwvj-flask"   // change to YOUR Docker Hub namespace/repo
+        IMAGE = "docker.io/<your-dockerhub-user>/cwvj-flask"   // change to YOUR Docker Hub namespace/repo
         TAG   = "${BUILD_NUMBER}"
     }
     stages {
@@ -19,9 +22,13 @@ pipeline {
         stage('push') {
             steps {
                 withCredentials([usernamePassword(credentialsId: 'dockerhub', passwordVariable: 'DOCKERHUB_PWD', usernameVariable: 'DOCKERHUB_USER')]) {
-                    sh 'echo "$DOCKERHUB_PWD" | docker login -u "$DOCKERHUB_USER" --password-stdin'
-                    sh 'docker push "$IMAGE:$TAG"'
-                    sh 'docker push "$IMAGE:latest"'
+                    // Audit fix: log out in the same shell, so the token doesn't stay in ~/.docker/config.json.
+                    sh '''
+                      echo "$DOCKERHUB_PWD" | docker login -u "$DOCKERHUB_USER" --password-stdin
+                      trap 'docker logout' EXIT
+                      docker push "$IMAGE:$TAG"
+                      docker push "$IMAGE:latest"
+                    '''
                 }
             }
         }

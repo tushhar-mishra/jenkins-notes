@@ -100,7 +100,7 @@ pipeline {
             args: ["infinity"]
             resources: { requests: { cpu: "500m", memory: "1Gi" }, limits: { memory: "2Gi" } }
           - name: kubectl
-            image: bitnami/kubectl:1.34
+            image: alpine/k8s:1.34.1          # kubectl + a shell; ⚠️ bitnami/kubectl's versioned tags moved out of Bitnami's free catalog in 2025. Pin the tag (or digest) you verified exists.
             command: ["sleep"]
             args: ["infinity"]
       '''

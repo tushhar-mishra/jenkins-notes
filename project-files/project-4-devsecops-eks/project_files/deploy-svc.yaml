@@ -23,11 +23,33 @@ spec:
           labelSelector:
             matchLabels:
               app: cwvj-devsecops-demo
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001              # the eclipse-temurin image runs as root by default
+        seccompProfile: { type: RuntimeDefault }
       containers:
         - name: cwvj-devsecops-demo
-          image: 386275436648.dkr.ecr.ap-south-1.amazonaws.com/cwvj-devsecops-demo:latest
+          image: <YOUR_ACCOUNT_ID>.dkr.ecr.ap-south-1.amazonaws.com/cwvj-devsecops-demo:placeholder   # the pipeline replaces this with the pushed digest
           ports:
             - containerPort: 8080
+          # Audit fix: without probes, `kubectl rollout status` only proves the process started,
+          # so the pipeline's rollback gate could never catch a broken release.
+          readinessProbe:
+            httpGet: { path: /, port: 8080 }
+            initialDelaySeconds: 5
+            periodSeconds: 5
+            failureThreshold: 3
+          livenessProbe:
+            httpGet: { path: /, port: 8080 }
+            initialDelaySeconds: 20
+            periodSeconds: 10
+            failureThreshold: 3
+          resources:
+            requests: { cpu: 100m, memory: 256Mi }
+            limits:   { memory: 512Mi }
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities: { drop: ["ALL"] }
 
             
 ---

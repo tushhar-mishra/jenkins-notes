@@ -94,7 +94,7 @@ GitHub → **Settings → Developer settings → Personal access tokens**:
 Purpose: Jenkins uses it to check out private repos for pipeline jobs and to fetch shared libraries (topic 57).
 
 **B) Docker Hub (for push & private pull):**
-- Make sure you have a **private** repo on Docker Hub (e.g. `cloudwithvarjosh/cwvj-flask`).
+- Make sure you have a **private** repo on Docker Hub (e.g. `<your-dockerhub-user>/cwvj-flask`).
 - Create a Docker Hub **access token** (Account settings → Personal access tokens) rather than using your password.
 - **Kind:** *Username with password* · **Username:** your Docker Hub username · **Password:** the token · **ID:** `dockerhub` · Save.
 

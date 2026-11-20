@@ -6,7 +6,7 @@ set -euo pipefail
 
 CLUSTER=cwvj-devsecops-eks
 REGION=ap-south-1
-ROLE_ARN=arn:aws:iam::386275436648:role/jenkins-agent-role   # change to your account/role
+ROLE_ARN=arn:aws:iam::<YOUR_ACCOUNT_ID>:role/jenkins-agent-role   # change to your account/role
 
 # 1) authentication: map the IAM role to the Kubernetes username "jenkins-agent-role" (no admin policy attached)
 aws eks create-access-entry --cluster-name "$CLUSTER" --region "$REGION" \

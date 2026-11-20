@@ -125,7 +125,7 @@ GitHub → **Settings → Developer settings → Personal access tokens**:
 ### 2) Add credentials in Jenkins (GitHub & Docker Hub)
 
 - **A) GitHub PAT:** *Username with password*, username = GitHub user, password = PAT, **ID `github-pat`**.
-- **B) Docker Hub:** make sure you have a **private** repo on Docker Hub (e.g. `cloudwithvarjosh/cwvj-flask`, use your own namespace). *Username with password*, username = Docker Hub user, password = Docker Hub **access token**, **ID `dockerhub`**.
+- **B) Docker Hub:** make sure you have a **private** repo on Docker Hub (e.g. `<your-dockerhub-user>/cwvj-flask`, use your own namespace). *Username with password*, username = Docker Hub user, password = Docker Hub **access token**, **ID `dockerhub`**.
 
 > Store secrets **once** in Jenkins Credentials and reference them; don't paste them into **Execute shell** (topic 24).
 
@@ -159,7 +159,7 @@ echo "Logging in to Docker Hub..."
 echo "$DOCKERHUB_PWD" | docker login -u "$DOCKERHUB_USER" --password-stdin
 
 # 2) Image naming
-IMAGE="docker.io/cloudwithvarjosh/cwvj-flask"
+IMAGE="docker.io/<your-dockerhub-user>/cwvj-flask"
 TAG="${BUILD_NUMBER}"
 
 # 3) Build and push (exact tag + latest for convenience)
@@ -207,11 +207,11 @@ After you've confirmed everything works: **Post-build Actions → Delete workspa
    Logging in to Docker Hub...
    + docker login -u **** --password-stdin
    Login Succeeded
-   + docker build -t docker.io/cloudwithvarjosh/cwvj-flask:3 -t docker.io/cloudwithvarjosh/cwvj-flask:latest .
-   #8 naming to docker.io/cloudwithvarjosh/cwvj-flask:3 done
-   + docker push docker.io/cloudwithvarjosh/cwvj-flask:3
+   + docker build -t docker.io/<your-dockerhub-user>/cwvj-flask:3 -t docker.io/<your-dockerhub-user>/cwvj-flask:latest .
+   #8 naming to docker.io/<your-dockerhub-user>/cwvj-flask:3 done
+   + docker push docker.io/<your-dockerhub-user>/cwvj-flask:3
    3: digest: sha256:7d1e… size: 1990
-   + docker run -d --name cwvj-flask -p 5000:5000 docker.io/cloudwithvarjosh/cwvj-flask:3
+   + docker run -d --name cwvj-flask -p 5000:5000 docker.io/<your-dockerhub-user>/cwvj-flask:3
    5b9e0c3f1a…
    Finished: SUCCESS
    ```

@@ -49,7 +49,7 @@ pipeline {
   agent any
 
   environment {
-    IMAGE = 'docker.io/cloudwithvarjosh/cwvj-flask'   // change to your namespace/repo
+    IMAGE = 'docker.io/<your-dockerhub-user>/cwvj-flask'   // change to your namespace/repo
     TAG   = "${env.BUILD_NUMBER}"
   }
 
@@ -160,7 +160,7 @@ pipeline {
   agent any
 
   environment {
-    IMAGE = 'docker.io/cloudwithvarjosh/cwvj-flask'   // change to your namespace/repo
+    IMAGE = 'docker.io/<your-dockerhub-user>/cwvj-flask'   // change to your namespace/repo
     TAG   = "${env.BUILD_NUMBER}"                     // simple, unique per run
   }
 

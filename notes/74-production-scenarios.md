@@ -44,7 +44,10 @@ Flight-simulator emergencies: you've learnt every instrument; now practise the e
 
 ### 3. "An AWS key leaked from a build log"
 
-- **Investigate:** someone printed `env` in a debug step, or the secret was used in a double-quoted `sh` string and appeared in a transformed form (base64), unmasked.
+- **Investigate:** these are **different leak paths**, so check each one:
+  - someone printed `env` (or ran with `set -x`) in a debug step;
+  - the secret was put into a **double-quoted** Groovy string (`sh "… ${AWS_SECRET}"`): Groovy interpolates it into the step's arguments, which are stored with the build, and Jenkins warns about it;
+  - the secret was **transformed** (base64, URL-encoded, split, JSON-escaped): masking only matches the exact value, so the transformed form prints unmasked.
 - **Root cause:** a long-lived secret in Jenkins + careless pipeline code.
 - **Fix:** **revoke/rotate the key immediately**; delete the build logs; check CloudTrail for misuse.
 - **Prevention:** IAM roles/IRSA/OIDC instead of keys (topics 24, 61); single-quoted `sh`; folder-scoped credentials; PR review of Jenkinsfiles; secret scanning of logs.

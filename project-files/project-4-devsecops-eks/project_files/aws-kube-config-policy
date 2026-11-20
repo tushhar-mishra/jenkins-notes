@@ -6,7 +6,7 @@
       "Action": [
         "eks:DescribeCluster"
       ],
-      "Resource": "arn:aws:eks:ap-south-1:386275436648:cluster/cwvj-devsecops-eks"
+      "Resource": "arn:aws:eks:ap-south-1:<YOUR_ACCOUNT_ID>:cluster/cwvj-devsecops-eks"
     }
   ]
 }

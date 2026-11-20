@@ -239,7 +239,6 @@ pipeline {
           sh 'mvn clean verify sonar:sonar \
   -Dsonar.projectKey=cwvj-devsecops-demo \
   -Dsonar.host.url="http://${SONAR_IP}:9000" \
-  -Dsonar.token="${SONAR_TOKEN}" \
   -Dsonar.qualitygate.wait=true'
         }
       }
@@ -253,7 +252,7 @@ pipeline {
 - `withCredentials`: injects the token as `SONAR_TOKEN`, masked; it never appears in logs or pipeline history.
 - The `sh '…'` string is **single-quoted**, so `${SONAR_IP}` and `${SONAR_TOKEN}` are expanded by the **shell**, not Groovy: the safe way (topic 30). The backslash-newline continuations end up inside one long shell line.
 - `mvn clean verify sonar:sonar`: `clean` removes old artifacts; `verify` compiles, tests (Surefire) and produces JaCoCo coverage; `sonar:sonar` runs the SAST analysis, uploads coverage, and triggers the quality-gate evaluation (topic 59).
-- `-Dsonar.projectKey`: our project. `-Dsonar.host.url`: the server URL. `-Dsonar.token`: the CI auth token (replaces the deprecated `sonar.login`). `-Dsonar.qualitygate.wait=true`: the pipeline **waits** for SonarQube to evaluate the gate, and the build **fails** if coverage or SAST rules violate it.
+- `-Dsonar.projectKey`: our project. `-Dsonar.host.url`: the server URL. The CI auth token reaches the scanner as the **`SONAR_TOKEN` environment variable** set by `withCredentials`, which the Sonar Maven plugin reads automatically. ⚠️ *Corrected:* the course passed `-Dsonar.token="${SONAR_TOKEN}"`, which puts the token in the process arguments, readable by anyone on the agent with `ps` (topic 24). (`sonar.token` replaced the deprecated `sonar.login`.) In a real setup also use **HTTPS** for SonarQube, not `http://IP:9000`, and prefer `withSonarQubeEnv` + `waitForQualityGate`. `-Dsonar.qualitygate.wait=true`: the pipeline **waits** for SonarQube to evaluate the gate, and the build **fails** if coverage or SAST rules violate it.
 
 Sample output (gate failing, as designed):
 ```
@@ -330,7 +329,7 @@ This lets the agent authenticate to ECR, pull/push images and do registry action
 
 The repository's **View push commands** shows the login snippet:
 ```bash
-aws ecr get-login-password --region ap-south-1 | docker login --username AWS --password-stdin 386275436648.dkr.ecr.ap-south-1.amazonaws.com
+aws ecr get-login-password --region ap-south-1 | docker login --username AWS --password-stdin <YOUR_ACCOUNT_ID>.dkr.ecr.ap-south-1.amazonaws.com
 ```
 
 **Pipeline with ECR login (Stage 4):**
@@ -342,7 +341,7 @@ pipeline {
   }
   environment {
     SONAR_IP = '172.31.21.44'
-    ECR_REGISTRY = '386275436648.dkr.ecr.ap-south-1.amazonaws.com'
+    ECR_REGISTRY = '<YOUR_ACCOUNT_ID>.dkr.ecr.ap-south-1.amazonaws.com'
   }
   stages {
     stage('Trivy FS Scan') {
@@ -356,7 +355,6 @@ pipeline {
           sh 'mvn clean verify sonar:sonar \
   -Dsonar.projectKey=cwvj-devsecops-demo \
   -Dsonar.host.url="http://${SONAR_IP}:9000" \
-  -Dsonar.token="${SONAR_TOKEN}" \
   -Dsonar.qualitygate.wait=true'
         }
       }
@@ -411,7 +409,7 @@ git push private-repo main
 ```groovy
   environment {
     SONAR_IP = '172.31.21.44'
-    ECR_REGISTRY = '386275436648.dkr.ecr.ap-south-1.amazonaws.com'
+    ECR_REGISTRY = '<YOUR_ACCOUNT_ID>.dkr.ecr.ap-south-1.amazonaws.com'
     IMAGE_REPO = "${ECR_REGISTRY}/cwvj-devsecops-demo"
   }
   ...

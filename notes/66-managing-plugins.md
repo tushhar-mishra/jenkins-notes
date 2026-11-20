@@ -92,7 +92,7 @@ Flags (checked against the tool's README): `--plugin-file`/`-f` (a plugins.txt o
 
 ### Remove what you don't use
 
-Every plugin is attack surface. **Manage Jenkins → Plugins → Installed**: uninstall unused ones (check "used by" first). Avoid deprecated ones (e.g. **Blue Ocean**, deprecated since July 2026, topic 15; prefer Pipeline Graph View).
+Every plugin is attack surface. **Manage Jenkins → Plugins → Installed**: uninstall unused ones (check "used by" first). Avoid deprecated ones (e.g. **Blue Ocean**, deprecated, topic 15; prefer Pipeline Graph View).
 
 ---
 

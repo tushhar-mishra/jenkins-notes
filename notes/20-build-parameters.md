@@ -90,7 +90,11 @@ Finished: SUCCESS
 `[ "$RUN_TESTS" = "true" ]` is a shell string comparison (Linux notes topic 042): the boolean arrives as the **text** `true`/`false`.
 
 **Production note (why it matters):** parameters turn hidden shell flags into **auditable inputs** shown on the build page, which improves change control and rollback.
-- **Hotfix example:** tick `RUN_TESTS=false` for a critical fix where unit tests take 20 minutes and the SLA is 5 minutes; straight after, re-run with `RUN_TESTS=true` on `dev` to validate. The build history shows exactly which run skipped tests, who ran it, and for which `ENV`.
+- **Hotfix example (and why not to skip tests):** it is tempting to tick `RUN_TESTS=false` for a critical fix when the tests take 20 minutes and the SLA is 5. ⚠️ *Corrected:* shipping an untested change to production during an incident is how one outage becomes two. Senior practice instead:
+  - **roll back first**: redeploy the last known-good image by digest (minutes, no build needed), then fix calmly;
+  - keep a **fast mandatory test subset** (smoke and critical-path tests, a few minutes) that can never be skipped, and run the full suite in parallel or right after;
+  - if a skip is truly unavoidable, make it an audited, approval-gated exception, not a checkbox anyone can tick.
+  A boolean like `RUN_TESTS` is fine for **dev** experiments. The build history shows exactly which run skipped tests, who ran it, and for which `ENV`.
 - **Regulated teams:** keep `ENV` choices locked to `dev/stage/prod`. Release managers can enforce approvals per environment while engineers still use one job.
 - **Rollback:** the archived `report-$ENV.txt` and the parameters stored on the build record give a clear breadcrumb of what was deployed where.
 

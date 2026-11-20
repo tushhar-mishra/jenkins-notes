@@ -224,23 +224,39 @@ The trunk-based flow as a Jenkinsfile skeleton (you'll be able to write every li
 
 ```groovy
 pipeline {
-  agent any
+  agent none                                    // no executor is held while waiting for approval
   stages {
-    stage('CI') { steps { sh 'make lint test' } }                     // every branch/PR
-    stage('Build & publish') {
+    stage('CI') { agent { label 'build' }       // every branch/PR
+      steps { sh 'make lint test' } }
+    stage('Build, publish, deploy dev') {
       when { branch 'main' }
-      steps { sh './build_push_and_write_manifest.sh' }               // build ONCE
+      agent { label 'build' }
+      steps {
+        sh './build_push_and_write_manifest.sh'                     // build ONCE
+        stash name: 'manifest', includes: 'manifest.json'           // the digest travels with the run
+        sh './deploy.sh dev'
+      }
     }
-    stage('Deploy dev')   { when { branch 'main' } steps { sh './deploy.sh dev' } }
-    stage('Deploy stage') { when { branch 'main' }
-      steps { input message: 'Promote to stage?'; sh './deploy.sh stage' } }
-    stage('Deploy prod')  { when { branch 'main' }
-      steps { input message: 'Promote to PROD?', submitter: 'release-managers'
-              sh './deploy.sh prod' } }
+    stage('Deploy stage') {
+      when { beforeInput true; branch 'main' }
+      input { message 'Promote to stage?' }   // stage-level input: asked BEFORE an agent is allocated
+      options { timeout(time: 1, unit: 'DAYS') }
+      agent { label 'deploy' }
+      steps { milestone(1); unstash 'manifest'; sh './deploy.sh stage' }
+    }
+    stage('Deploy prod') {
+      when { beforeInput true; branch 'main' }
+      input { message 'Promote to PROD?'; submitter 'release-managers' }
+      options { timeout(time: 1, unit: 'DAYS') }
+      agent { label 'deploy' }
+      steps { milestone(2); unstash 'manifest'; sh './deploy.sh prod' }
+    }
   }
 }
 ```
 `input` pauses the pipeline until an authorised person clicks **Proceed** (topic 38). Each `deploy.sh` reads the same `manifest.json` and deploys the same digest.
+
+⚠️ **Corrected:** an earlier version used `agent any` with `input` inside `steps`. That holds an **executor for the whole wait**, often hours, and a few pending approvals can starve the whole Jenkins. With `agent none` at the top and a **stage-level** `input` directive, nothing is allocated until someone approves. `timeout` stops abandoned approvals waiting forever, and `milestone` makes sure an older build can never deploy after a newer one has passed the same point.
 
 Rollback with Helm:
 ```bash

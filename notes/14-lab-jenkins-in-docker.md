@@ -142,6 +142,7 @@ services:
     environment:
       TZ: Asia/Kolkata
       JAVA_OPTS: "-XX:MaxRAMPercentage=75"
+    mem_limit: 2g                 # without a limit, "75%" means 75% of the whole Docker/WSL2 VM
     volumes:
       - jenkins_home:/var/jenkins_home
 volumes:
@@ -151,7 +152,7 @@ volumes:
 ```bash
 docker compose up -d && docker compose logs -f jenkins
 ```
-`JAVA_OPTS: -XX:MaxRAMPercentage=75` lets the JVM heap use up to 75% of the container's memory limit (topic 12).
+`JAVA_OPTS: -XX:MaxRAMPercentage=75` lets the JVM heap use up to 75% of the container's memory limit (topic 12). ⚠️ That only works if there **is** a limit: without `mem_limit`, the JVM sizes itself against all the RAM Docker can see (on Docker Desktop, the WSL2 VM), and the host, not the container, runs out of memory first.
 
 ---
 
