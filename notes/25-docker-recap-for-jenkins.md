@@ -105,7 +105,7 @@ Remote daemons over plain TCP (port 2375) have **no authentication**. Never expo
 
 ### Images, tags and registries (one-paragraph recap)
 
-Image names are `registry/namespace/repository:tag` (e.g. `docker.io/cloudwithvarjosh/cwvj-flask:42`). `docker build -t NAME:TAG .` builds from the Dockerfile in `.` (the **build context**). `docker push` uploads to the registry (after `docker login`). `docker pull` downloads. Every image has an immutable **digest** (topic 07). Docker notes topics 06, 14 and 22 have the details.
+Image names are `registry/namespace/repository:tag` (e.g. `docker.io/<your-dockerhub-user>/cwvj-flask:42`). `docker build -t NAME:TAG .` builds from the Dockerfile in `.` (the **build context**). `docker push` uploads to the registry (after `docker login`). `docker pull` downloads. Every image has an immutable **digest** (topic 07). Docker notes topics 06, 14 and 22 have the details.
 
 ---
 

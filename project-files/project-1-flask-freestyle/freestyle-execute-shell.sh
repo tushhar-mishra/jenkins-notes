@@ -4,7 +4,7 @@ echo "Logging in to Docker Hub..."
 echo "$DOCKERHUB_PWD" | docker login -u "$DOCKERHUB_USER" --password-stdin
 
 # 2) Image naming
-IMAGE="docker.io/cloudwithvarjosh/cwvj-flask"
+IMAGE="docker.io/<your-dockerhub-user>/cwvj-flask"
 TAG="${BUILD_NUMBER}"
 
 # 3) Build and push (exact tag + latest for convenience)

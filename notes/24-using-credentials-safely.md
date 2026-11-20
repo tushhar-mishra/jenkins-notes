@@ -93,12 +93,12 @@ withCredentials([usernamePassword(credentialsId: 'dockerhub',
 }
 ```
 
-> **Why these two (from Day 06)?** `git` with `credentialsId` is the safe, fast way to check out. `withCredentials` injects the Docker Hub secret **just for the block**: masked in logs, not saved in `.git/config`, not visible in `ps`.
+> **Why these two (from Day 06)?** `git` with `credentialsId` is the safe, fast way to check out. `withCredentials` injects the Docker Hub secret **just for the block**: masked in logs and not saved in `.git/config`. It is passed as an **environment variable**, which other users can't read through `ps`. ⚠️ That protection disappears the moment you put the value on a command line (`-Dsonar.token="$SONAR_TOKEN"`, `--password $P`): command-line arguments **are** visible in `ps` and `/proc/<pid>/cmdline` to anyone on the agent. Prefer tools that read secrets from env vars or stdin (`--password-stdin`).
 
 Other bindings:
 ```groovy
 withCredentials([string(credentialsId: 'sonarqube-token', variable: 'SONAR_TOKEN')]) {
-  sh 'mvn -B verify sonar:sonar -Dsonar.token="$SONAR_TOKEN"'
+  sh 'mvn -B verify sonar:sonar'          // the Sonar scanner reads $SONAR_TOKEN from the environment; never -Dsonar.token=… (visible in ps)
 }
 withCredentials([file(credentialsId: 'kubeconfig-stage', variable: 'KUBECONFIG')]) {
   sh 'kubectl get ns'                     // kubectl reads $KUBECONFIG = path to a temp file

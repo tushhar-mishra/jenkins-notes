@@ -37,7 +37,7 @@ sudo systemctl edit jenkins     # Environment="JAVA_OPTS=-Djava.awt.headless=tru
 ```groovy
 @Library('platform-lib@v2') _
 pipeline {
-  agent { label 'docker' }                        // any | none | { docker { image '…' } } | { kubernetes { yaml '…' } }
+  agent none                                      // per-stage agents below, so no executor is held during `input`
   options {
     timeout(time: 30, unit: 'MINUTES'); timestamps()
     buildDiscarder(logRotator(numToKeepStr: '20'))
@@ -50,18 +50,24 @@ pipeline {
     TOKEN = credentials('sonarqube-token')        // secret text → $TOKEN
   }
   stages {
-    stage('Test')  { steps { sh 'make test' } post { always { junit 'reports/*.xml' } } }
-    stage('Checks') { parallel {
-      stage('Lint') { steps { sh 'make lint' } }
-      stage('SCA')  { steps { sh 'trivy fs --exit-code 1 --severity HIGH,CRITICAL .' } } } }
-    stage('Build') { steps { script { env.TAG = env.GIT_COMMIT.take(7) }
-                             sh 'docker build -t "$IMAGE:$TAG" .' } }
-    stage('Push')  { when { branch 'main' }
-      steps { withCredentials([usernamePassword(credentialsId: 'registry', usernameVariable: 'U', passwordVariable: 'P')]) {
-        sh 'echo "$P" | docker login -u "$U" --password-stdin registry.example.com && docker push "$IMAGE:$TAG"' } } }
-    stage('Prod')  { when { branch 'main' }
-      input { message 'Deploy to prod?'; submitter 'release-managers' }
-      steps { lock('env-prod') { sh './deploy.sh prod' } } }
+    stage('CI') { agent { label 'docker' }        // any | { docker { image '…' } } | { kubernetes { yaml '…' } }
+      stages {                                    // one agent for the whole CI part: same workspace, same image cache
+        stage('Test')  { steps { sh 'make test' } post { always { junit 'reports/*.xml' } } }
+        stage('Checks') { parallel {
+          stage('Lint') { steps { sh 'make lint' } }
+          stage('SCA')  { steps { sh 'trivy fs --exit-code 1 --severity HIGH,CRITICAL .' } } } }
+        stage('Build') { steps { script { env.TAG = env.GIT_COMMIT.take(7) }
+                                 sh 'docker build -t "$IMAGE:$TAG" .' } }
+        stage('Push')  { when { branch 'main' }
+          steps { withCredentials([usernamePassword(credentialsId: 'registry', usernameVariable: 'U', passwordVariable: 'P')]) {
+            sh 'echo "$P" | docker login -u "$U" --password-stdin registry.example.com && docker push "$IMAGE:$TAG"; docker logout registry.example.com' } } }
+      }
+    }
+    stage('Prod')  { when { beforeInput true; branch 'main' }
+      input { message 'Deploy to prod?'; submitter 'release-managers' }   // asked BEFORE an agent is allocated
+      options { timeout(time: 1, unit: 'DAYS') }                         // don't wait forever
+      agent { label 'deploy' }
+      steps { milestone(1); lock('env-prod') { sh './deploy.sh prod' } } }
   }
   post {
     failure { echo "FAILED ${env.BUILD_URL}" }   // slackSend / emailext (71)
@@ -147,7 +153,7 @@ curl -u user:TOKEN -X POST "$J/safeRestart"      # also /quietDown, /cancelQuiet
 
 ```bash
 trivy fs --exit-code 1 --severity HIGH,CRITICAL .
-mvn -B clean verify sonar:sonar -Dsonar.projectKey=K -Dsonar.host.url=$URL -Dsonar.token=$TOKEN -Dsonar.qualitygate.wait=true
+SONAR_TOKEN=$TOKEN mvn -B clean verify sonar:sonar -Dsonar.projectKey=K -Dsonar.host.url=$URL -Dsonar.qualitygate.wait=true   # token via env, not -D (ps)
 aws ecr get-login-password --region R | docker login --username AWS --password-stdin ACCOUNT.dkr.ecr.R.amazonaws.com
 docker build --platform linux/amd64 -t "$IMAGE_REPO:$BUILD_NUMBER" .
 trivy image --exit-code 1 --severity HIGH,CRITICAL "$IMAGE_REPO:$BUILD_NUMBER"

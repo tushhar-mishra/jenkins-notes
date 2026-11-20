@@ -73,7 +73,7 @@ Job names become URL paths and folder names on disk: `http://localhost:8080/job/
   - **Replay** (pipelines): re-run with an edited Jenkinsfile, without committing (topic 32).
   - **Restart from Stage** (declarative): re-run from a chosen stage.
 
-> ⚠️ **Corrected (added):** your notes don't mention it, but many tutorials still show **Blue Ocean**. Blue Ocean **has been deprecated since July 2026**: no more fixes, including security fixes. Use **Pipeline Graph View** (the "Stages" view in your Day 06 notes), which is actively maintained and has Blue Ocean's most important features. The older **Pipeline: Stage View** grid still exists but is legacy. Don't install Blue Ocean on new controllers.
+> ⚠️ **Corrected (added):** your notes don't mention it, but many tutorials still show **Blue Ocean**. Blue Ocean **is deprecated** (⚠️ *the exact deprecation date is unverified; check its plugin page*) and has had little maintenance for years: don't count on fixes, including security fixes. Use **Pipeline Graph View** (the "Stages" view in your Day 06 notes), which is actively maintained and has Blue Ocean's most important features. The older **Pipeline: Stage View** grid still exists but is legacy. Don't install Blue Ocean on new controllers.
 
 ### Folders and views
 

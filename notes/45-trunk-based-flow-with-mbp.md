@@ -98,7 +98,12 @@ pipeline {
       }
     }
     stage('Preview') {
-      when { changeRequest() }                                                    // PR jobs only
+      // PR jobs from THIS repo only: a fork PR's code must never run with access to the preview cluster.
+      // (The Jenkinsfile can be edited by the PR, so ALSO enforce this with the fork trust setting
+      // and a credential-free agent pool for fork PRs, topic 44.)
+      when { allOf { changeRequest(); not { changeRequest fork: '*' } } }
+      // ⚠️ On PR merge builds GIT_COMMIT is a synthetic merge commit that doesn't exist on GitHub;
+      // for traceable tags use the PR head (git rev-parse HEAD^2), as in project-3's Jenkinsfile.corrected.
       steps {
         sh './preview.sh up "pr-$CHANGE_ID" "$IMAGE:$GIT_COMMIT"'
         sh './smoke.sh "https://pr-$CHANGE_ID.preview.example.com"'

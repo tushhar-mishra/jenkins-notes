@@ -61,7 +61,7 @@ That's why the Day 06 deploy-info file (topic 36) shows a real commit when the j
 We'll reference these in the **build/push/deploy** stages:
 ```groovy
 environment {
-  IMAGE = 'docker.io/cloudwithvarjosh/cwvj-flask'   // use your namespace/repo
+  IMAGE = 'docker.io/<your-dockerhub-user>/cwvj-flask'   // use your namespace/repo
   TAG   = "${env.BUILD_NUMBER}"                     // easy, unique tag per run
 }
 ```
@@ -72,7 +72,7 @@ environment {
 ```groovy
 environment {
   SONAR_IP     = '172.31.21.44'
-  ECR_REGISTRY = '386275436648.dkr.ecr.ap-south-1.amazonaws.com'
+  ECR_REGISTRY = '<YOUR_ACCOUNT_ID>.dkr.ecr.ap-south-1.amazonaws.com'
   IMAGE_REPO   = "${ECR_REGISTRY}/cwvj-devsecops-demo"
 }
 ```

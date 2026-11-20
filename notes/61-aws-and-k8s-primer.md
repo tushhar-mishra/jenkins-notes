@@ -49,7 +49,7 @@ Since the agent runs on **EC2**, the best practice is an **IAM role** rather tha
 aws sts get-caller-identity
 ```
 ```json
-{ "Account": "386275436648", "Arn": "arn:aws:sts::386275436648:assumed-role/jenkins-agent-role/i-0abc123…" }
+{ "Account": "<YOUR_ACCOUNT_ID>", "Arn": "arn:aws:sts::<YOUR_ACCOUNT_ID>:assumed-role/jenkins-agent-role/i-0abc123…" }
 ```
 `assumed-role/jenkins-agent-role/i-…` proves the CLI is using the instance role. (Use **IMDSv2**, which requires a session token and blocks some SSRF attacks; it's the default on new instances.)
 
@@ -73,7 +73,7 @@ aws sts get-caller-identity
 The `aws-auth` entry `eksctl` creates for worker nodes:
 ```yaml
 mapRoles: |
-  - rolearn: arn:aws:iam::386275436648:role/eksctl-cwvj-devsecops-eks-nodegrou-NodeInstanceRole-J3Szf4uMWv1R
+  - rolearn: arn:aws:iam::<YOUR_ACCOUNT_ID>:role/eksctl-cwvj-devsecops-eks-nodegrou-NodeInstanceRole-J3Szf4uMWv1R
     groups:
     - system:bootstrappers
     - system:nodes
@@ -95,7 +95,7 @@ Giving Jenkins these permissions would let it act like a node, update node statu
 - **Deployment** (2 replicas): keeps 2 pods of the image running, does rolling updates, supports `rollout undo`.
 - **Service** type **NodePort** (`80 → 8080`, nodePort 31000): exposes the pods on port 31000 of every node.
 - **topologySpreadConstraints**: spreads the replicas across Availability Zones.
-- **ClusterRole + ClusterRoleBinding** `jenkins-deployer-*`: exactly the verbs the pipeline needs.
+- **Role + RoleBinding** `jenkins-deployer` in the app's namespace: only the verbs the pipeline needs, only where it deploys. (The course used a cluster-wide ClusterRole that could also create and delete namespaces; that is not least privilege, see topic 63.)
 
 ---
 

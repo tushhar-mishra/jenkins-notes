@@ -94,7 +94,9 @@ tar czf /backup/jenkins-$(date +%F).tgz -C /var/lib/jenkins \
 docker volume create jenkins_restore
 docker run --rm -v jenkins_restore:/dst -v "$PWD":/backup alpine \
   sh -c 'tar xzf /backup/jenkins-home-2026-11-18.tgz -C /dst && chown -R 1000:1000 /dst'
-docker run -d --name jenkins-restore -p 8095:8080 -v jenkins_restore:/var/jenkins_home jenkins/jenkins:lts-jdk21
+docker run -d --name jenkins-restore -p 8095:8080 -v jenkins_restore:/var/jenkins_home "jenkins/jenkins:${BACKUP_VERSION}-lts-jdk21"
+# ⚠️ BACKUP_VERSION = the EXACT version the backup came from (e.g. read <version> in the backup's config.xml),
+#    never a floating 'lts' tag: restoring onto a newer core can run one-way data migrations.
 ```
 Then check, on `http://localhost:8095`:
 1. You can log in with your usual user (no setup wizard).

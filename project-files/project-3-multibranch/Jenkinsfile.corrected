@@ -1,6 +1,16 @@
 // Corrected version of the original Day 07 multibranch Jenkinsfile (original kept as "Jenkinsfile").
-// ⚠️ Fixes: (1) deploy to port 5000 / push :latest ONLY from main, (2) PRs get an isolated, throwaway preview,
+// Fixes: (1) deploy to port 5000 / push :latest ONLY from main, (2) PRs get an isolated, throwaway preview,
 // (3) tag images by commit SHA because BUILD_NUMBER restarts in every branch/PR job, (4) cleanup in post.
+// Audit fixes (security):
+// (5) ONLY main pushes to the registry. Before, every PR (including forks) ran the push stage with
+//     Docker Hub write credentials, so unreviewed code could publish images into the real repository.
+// (6) PR images are tagged with the PR's HEAD commit. On PR merge builds GIT_COMMIT is a synthetic merge
+//     commit that never exists on GitHub, so that tag could not be traced back to code.
+// (7) docker logout after pushing, so the token doesn't stay in the agent's ~/.docker/config.json.
+// Also configure OUTSIDE this file (a PR can edit this file, so the file can't enforce it):
+//   - Multibranch source > "Discover pull requests from forks" > Trust: "From users with Admin or Write
+//     permission", so fork PRs run the Jenkinsfile from the target branch, not their own copy.
+//   - Run PR builds on a separate, credential-free agent label/pool; scope 'dockerhub' to the main job's folder.
 pipeline {
     agent any
     options {
@@ -9,12 +19,21 @@ pipeline {
         buildDiscarder(logRotator(numToKeepStr: '20'))
     }
     environment {
-        IMAGE = "docker.io/cloudwithvarjosh/cwvj-flask"   // change to YOUR Docker Hub namespace/repo
+        IMAGE = "docker.io/<your-dockerhub-user>/flask-demo"   // set YOUR Docker Hub namespace/repo
     }
     stages {
         stage('meta') {
             steps {
-                script { env.TAG = env.GIT_COMMIT.take(7) }
+                script {
+                    if (env.CHANGE_ID) {
+                        // Merge builds: HEAD^2 is the PR head. Head-only builds: HEAD is the PR head.
+                        def head = sh(script: 'git rev-parse --short=7 HEAD^2 2>/dev/null || git rev-parse --short=7 HEAD',
+                                      returnStdout: true).trim()
+                        env.TAG = "pr${env.CHANGE_ID}-${head}"
+                    } else {
+                        env.TAG = env.GIT_COMMIT.take(7)
+                    }
+                }
                 echo "Branch ${env.BRANCH_NAME}, image tag ${env.TAG}"
             }
         }
@@ -24,46 +43,48 @@ pipeline {
             }
         }
         stage('push') {
+            when { branch 'main' }                     // never for PRs or forks
             steps {
                 withCredentials([usernamePassword(credentialsId: 'dockerhub', passwordVariable: 'DOCKERHUB_PWD', usernameVariable: 'DOCKERHUB_USER')]) {
-                    sh 'echo "$DOCKERHUB_PWD" | docker login -u "$DOCKERHUB_USER" --password-stdin'
-                    sh 'docker push "$IMAGE:$TAG"'
-                    script {
-                        if (env.BRANCH_NAME == 'main') {
-                            sh 'docker tag "$IMAGE:$TAG" "$IMAGE:latest" && docker push "$IMAGE:latest"'
-                        }
-                    }
+                    sh '''
+                      echo "$DOCKERHUB_PWD" | docker login -u "$DOCKERHUB_USER" --password-stdin
+                      trap 'docker logout' EXIT
+                      docker push "$IMAGE:$TAG"
+                      docker tag "$IMAGE:$TAG" "$IMAGE:latest"
+                      docker push "$IMAGE:latest"
+                    '''
                 }
             }
         }
         stage('deploy main') {
             when { branch 'main' }
             steps {
-                sh 'docker rm -f cwvj-flask || true'
-                sh 'docker run -d --name cwvj-flask -p 5000:5000 "$IMAGE:$TAG"'
+                sh 'docker rm -f flask-demo || true'
+                sh 'docker run -d --name flask-demo -p 5000:5000 "$IMAGE:$TAG"'
                 sh '''
-                  cat > deploy-info-$BUILD_NUMBER.txt <<EOF
+                  cat > deploy-info-$BUILD_NUMBER.txt <<EOT
 build: $BUILD_NUMBER
 image: $IMAGE:$TAG
 commit: ${GIT_COMMIT}
 branch: $BRANCH_NAME
 time: $(date -u +"%Y-%m-%dT%H:%M:%SZ")
 url: $BUILD_URL
-EOF
+EOT
                 '''
                 archiveArtifacts artifacts: "deploy-info-${BUILD_NUMBER}.txt", fingerprint: true, followSymlinks: false
-                sh 'docker run --rm --network container:cwvj-flask curlimages/curl -fsS --retry 5 --retry-connrefused http://localhost:5000'
+                sh 'docker run --rm --network container:flask-demo curlimages/curl -fsS --retry 5 --retry-connrefused http://localhost:5000'
             }
         }
         stage('preview PR') {
             when { changeRequest() }
             steps {
+                // Uses the locally built image only: nothing is pushed for PRs.
                 sh 'docker rm -f "pr-$CHANGE_ID" || true'
                 sh 'docker run -d --name "pr-$CHANGE_ID" "$IMAGE:$TAG"'      // no host port: it can't clash with main
                 sh 'docker run --rm --network "container:pr-$CHANGE_ID" curlimages/curl -fsS --retry 5 --retry-connrefused http://localhost:5000'
             }
             post {
-                always { sh 'docker rm -f "pr-$CHANGE_ID" || true' }
+                always { sh 'docker rm -f "pr-$CHANGE_ID" || true; docker rmi "$IMAGE:$TAG" || true' }
             }
         }
     }

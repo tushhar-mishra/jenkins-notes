@@ -118,7 +118,7 @@ With webhooks, Jenkins discovers `feature/ui` automatically. If not: MBP job →
 2. **(Optional) Auto-delete branch on merge:** **Settings → General → Pull Requests →** **Automatically delete head branches**.
 3. **Rescan in Jenkins** (manual, since no webhooks yet): **flask-mbp → Scan Repository Now**. You should now see a **PR job** (e.g. `PR-1`).
 4. **Run the PR job:** open it → **Build Now** (or it may start right after the scan). With the original shared `Jenkinsfile`, the PR job will:
-   - **Build & push** `docker.io/cloudwithvarjosh/cwvj-flask:$BUILD_NUMBER` (and `:latest`)
+   - **Build & push** `docker.io/<your-dockerhub-user>/cwvj-flask:$BUILD_NUMBER` (and `:latest`)
    - **Deploy** a container on the **local agent** as `cwvj-flask` on **port 5000**
    - **Write & archive** `deploy-info-$BUILD_NUMBER.txt`
    - Jenkins posts the build status back to the PR on GitHub.
@@ -165,7 +165,7 @@ curl -s http://localhost:5000
 In the PR (or main) job → **Build #N** → **Artifacts** → open `deploy-info-N.txt`:
 ```
 build: N
-image: docker.io/cloudwithvarjosh/cwvj-flask:N
+image: docker.io/<your-dockerhub-user>/cwvj-flask:N
 commit: <GIT_COMMIT>
 branch: <GIT_BRANCH>
 time: <UTC timestamp>
@@ -185,10 +185,15 @@ UI = "We've added a new Feature"
 
 ```groovy
 environment {
-  IMAGE = "docker.io/cloudwithvarjosh/cwvj-flask"
+  IMAGE = "docker.io/<your-dockerhub-user>/cwvj-flask"
 }
 stages {
-  stage('meta')  { steps { script { env.TAG = env.GIT_COMMIT.take(7) } } }
+  stage('meta')  { steps { script {
+    // PR merge builds: GIT_COMMIT is a synthetic merge commit that never exists on GitHub, so tag with the PR head.
+    env.TAG = env.CHANGE_ID
+      ? "pr${env.CHANGE_ID}-" + sh(script: 'git rev-parse --short=7 HEAD^2 2>/dev/null || git rev-parse --short=7 HEAD', returnStdout: true).trim()
+      : env.GIT_COMMIT.take(7)
+  } } }
   stage('build') { steps { sh 'docker build -t "$IMAGE:$TAG" .' } }
   stage('push')  { /* withCredentials … docker push "$IMAGE:$TAG"; on main also tag+push :latest */ }
   stage('deploy main') {

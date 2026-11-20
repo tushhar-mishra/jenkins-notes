@@ -67,7 +67,7 @@ resources: ["../../base"]
 namespace: loans-dev
 images:
   - name: loans
-    newName: 386275436648.dkr.ecr.ap-south-1.amazonaws.com/loans
+    newName: <YOUR_ACCOUNT_ID>.dkr.ecr.ap-south-1.amazonaws.com/loans
     digest: sha256:0000…                 # Jenkins updates this line
 ```
 
