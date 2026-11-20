@@ -1,4 +1,5 @@
-
+# shellcheck shell=bash
+# (No shebang: this is pasted into a Jenkins freestyle "Execute shell" box, which runs it with sh -xe.)
 # 1) Docker login (uses injected env vars)
 echo "Logging in to Docker Hub..."
 echo "$DOCKERHUB_PWD" | docker login -u "$DOCKERHUB_USER" --password-stdin

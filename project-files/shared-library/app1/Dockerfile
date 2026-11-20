@@ -6,9 +6,9 @@ WORKDIR /app
 # Copy only requirements first for better caching
 COPY requirements.txt .
 
-# Use python -m pip and avoid cache
-RUN python -m pip install --upgrade pip \
-    && python -m pip install --no-cache-dir -r requirements.txt
+# Install pinned dependencies only, without pip's cache. (Upgrading pip itself to "whatever is latest"
+# made the build unreproducible; the base image's pip is fine.)
+RUN python -m pip install --no-cache-dir -r requirements.txt
 
 # Copy application code (ensure filename matches your file: app1.py)
 COPY app1.py .
